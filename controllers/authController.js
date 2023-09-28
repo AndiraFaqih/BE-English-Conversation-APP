@@ -20,16 +20,21 @@ exports.signUpUser = async (req, res) => {
         const userCredential = await createUserWithEmailAndPassword(
             auth, 
             newUser.email, 
-            newUser.password
+            newUser.password,
         );
         const uid = userCredential.user.uid;
         token = await userCredential.user.getIdToken();
         const userSchema = {
             email: newUser.email,
             password: newUser.password,
+            username:"",
+            photoProfile:"",
             createdAt: new Date().toISOString(),
         };
-        await db.collection('Users').doc(uid).set(userSchema);
+        const options = {
+            ignoreUndefinedProperties: true,
+        };
+        await db.collection('Users').doc(uid).set(userSchema, options);
         res.status(201).send({ 
             message: "User berhasil ditambahkan", 
             token: token 
