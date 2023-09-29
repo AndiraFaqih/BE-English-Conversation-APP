@@ -7,7 +7,6 @@ var logger = require("morgan");
 app.use(cors());
 const multer = require("multer");
 
-//require authrouter
 const authRouter = require("./routes/authRoutes");
 const userRouter = require("./routes/userRoutes");
 
@@ -33,7 +32,6 @@ app.listen(port, () => {
     }
 );
 
-//use authRouter
 app.use("/api", authRouter);
 app.use("/api", userRouter);
 

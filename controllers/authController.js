@@ -7,23 +7,27 @@ const { auth } = require('../config/firebaseConfig');
 const bcrypt = require('bcrypt');
 const db = require('../models/index');
 
-//sign up
+//sign up user 
 exports.signUpUser = async (req, res) => {
     let token;
     const newUser = {
         email: req.body.email,
         password: req.body.password,
     };
+
     const salt = await bcrypt.genSalt(10);
     newUser.password = await bcrypt.hash(newUser.password, salt);
+
     try {
         const userCredential = await createUserWithEmailAndPassword(
             auth, 
             newUser.email, 
             newUser.password,
         );
+
         const uid = userCredential.user.uid;
         token = await userCredential.user.getIdToken();
+
         const userSchema = {
             email: newUser.email,
             password: newUser.password,
@@ -31,9 +35,11 @@ exports.signUpUser = async (req, res) => {
             photoProfile:"",
             createdAt: new Date().toISOString(),
         };
+
         const options = {
             ignoreUndefinedProperties: true,
         };
+
         await db.collection('Users').doc(uid).set(userSchema, options);
         res.status(201).send({ 
             message: "User berhasil ditambahkan", 
@@ -49,18 +55,22 @@ exports.signUpUser = async (req, res) => {
 //sign up and create account with google signinwithredirect
 exports.signUpWithGoogle = async (req, res) => {
     let token;
+
     try {
         const userCredential = await signInWithRedirect(
             auth,
             new GoogleAuthProvider()
         );
+
         const uid = userCredential.user.uid;
         token = await userCredential.user.getIdToken();
+
         const userSchema = {
             email: userCredential.user.email,
             password: userCredential.user.password,
             createdAt: new Date().toISOString(),
         };
+
         await db.collection('Users').doc(uid).set(userSchema);
         res.status(201).send({
             message: "User berhasil ditambahkan",
@@ -100,6 +110,7 @@ exports.loginUser = async (req, res) => {
             user.email,
             userSchema.password
         );
+
         token = await userCredential.user.getIdToken();
         res.status(200).send({ message: "Login berhasil", token: token });
     } catch (error) {
