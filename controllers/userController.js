@@ -55,4 +55,28 @@ exports.deleteUserAccount = async (req, res) => {
     } catch (error) {
         res.status(400).send({ message: error });
     }
-}  
+} 
+
+//get user profile
+exports.getUserProfile = async (req, res) => {
+    try {
+        const id = auth.currentUser.uid;
+        const user = await db.collection("User").doc(id).get();
+        const response = user.data();
+        res.status(200).send(response);
+    } catch (error) {
+        res.status(400).send({ message: error });
+    }
+}
+
+//get user profile by id
+exports.getUserProfileById = async (req, res) => {
+    try {
+        const id = req.params.id;
+        const user = await db.collection("User").doc(id).get();
+        const response = user.data();
+        res.status(200).send(response);
+    } catch (error) {
+        res.status(400).send({ message: error });
+    }
+}

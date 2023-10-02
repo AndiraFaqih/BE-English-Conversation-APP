@@ -9,6 +9,7 @@ const multer = require("multer");
 
 const authRouter = require("./routes/authRoutes");
 const userRouter = require("./routes/userRoutes");
+const chatRouter = require("./routes/chatRoutes");
 
 app.use(logger("dev"));
 app.use(bodyParser.urlencoded({ extended: false }));
@@ -34,5 +35,6 @@ app.listen(port, () => {
 
 app.use("/api", authRouter);
 app.use("/api", userRouter);
+app.use("/api", chatRouter);
 
 module.exports = {app, upload};
