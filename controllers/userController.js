@@ -1,5 +1,6 @@
 const { auth, firestore, storage } = require('../config/firebaseConfig');
 const db = require('../models/index');
+const { updateProfile } = require("firebase/auth");
 const {
     getDownloadURL,
     uploadBytesResumable,
@@ -21,7 +22,7 @@ exports.updateUserProfile = async (req) => {
     );
     const downloadUrl = await getDownloadURL(snapshot.ref);
     const { username } = req.body;
-    const UserDoc = db.collection("User").doc(id);
+    const UserDoc = db.collection("Users").doc(id);
     const user = await UserDoc.get();
     const response = user.data();
     await updateProfile(auth.currentUser, {
@@ -49,7 +50,7 @@ exports.updateUserProfile = async (req) => {
 exports.deleteUserAccount = async (req, res) => {
     try {
         const id = auth.currentUser.uid;
-        await db.collection("User").doc(id).delete();
+        await db.collection("Users").doc(id).delete();
         await auth.currentUser.delete();
         res.status(200).send({ message: "User berhasil dihapus" });
     } catch (error) {
@@ -61,7 +62,7 @@ exports.deleteUserAccount = async (req, res) => {
 exports.getUserProfile = async (req, res) => {
     try {
         const id = auth.currentUser.uid;
-        const user = await db.collection("User").doc(id).get();
+        const user = await db.collection("Users").doc(id).get();
         const response = user.data();
         res.status(200).send(response);
     } catch (error) {
@@ -73,7 +74,7 @@ exports.getUserProfile = async (req, res) => {
 exports.getUserProfileById = async (req, res) => {
     try {
         const id = req.params.id;
-        const user = await db.collection("User").doc(id).get();
+        const user = await db.collection("Users").doc(id).get();
         const response = user.data();
         res.status(200).send(response);
     } catch (error) {
