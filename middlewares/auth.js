@@ -1,58 +1,96 @@
-//auth middleware use firebase
-const jwt = require('jsonwebtoken');
-const User = require('../models/User');
+const db = require('../models/index');
+const { getAuth } = require('firebase-admin/auth');
 
-//get user from token
-const getUserFromToken = async (token) => {
-    try {
-        const { id } = await jwt.verify(token, process.env.JWT_SECRET);
-        const user = await User.findById(id);
-        return user;
-    } catch (error) {
-        return null;
-    }
-};
+exports.authCheck = async (req, res, next) => {
+    let token;
 
-//check if user is authenticated
-const auth = async (req, res, next) => {
-    const token = req.cookies.token;
-    const user = await getUserFromToken(token);
-    if (!user) {
-        return res.status(401).send({ error: 'Unauthorized' });
+    if (
+        req.headers.authorization &&
+        req.headers.authorization.startsWith('Bearer ')
+    ) {
+        token = req.headers.authorization.split(' ')[1];
+    } else {
+        return res.status(401).send({ 
+            error: 'UNAOUTHORIZED'
+        });
     }
-    req.user = user;
-    next();
-};
-
-//if user logged succesfully create token and set cookie
-const login = async (req, res) => {
-    const { username, password } = req.body;
-    //check  username and password are correct
-    const user = await User.checkCredentials(username, password);
-    if (!user) {
-        return res.status(401).send({ error: 'Invalid username or password' });
-    }
-    const token = await user.generateToken();
-    res.cookie('token', token, {
-        httpOnly: true,
-        sameSite: 'none',
-        secure: true,
+    getAuth()
+    .verifyIdToken(token[1])
+    .then((decodedToken) => {
+        req.user = decodedToken;
+        return (uid = decodedToken.uid);
+    })
+    .then((data) => {
+        if (data) {
+            next();
+        } else {
+            res.status(403).send({
+                msg: "FORBIDDEN",
+            });
+        }
+    })
+    .catch((error) => {
+        if (error.code === "auth/id-token-expired") {
+            res.status(400).send({
+                error: "TOKEN EXPIRED",
+                message: "PLEASE LOGIN AGAIN !",
+            });
+        } else {
+            res.status(500).send({
+                error: "INTERNAL SERVER ERROR",
+            });
+        }
     });
-    res.send({ user });
-};
-
-//check credentials and create new user
-const signup = async (req, res) => {
-    const { username, password } = req.body;
-    const user = await User.create({ username, password });
-    const token = await user.generateToken();
-    res.cookie('token', token, {
-        httpOnly: true,
-        sameSite: 'none',
-        secure: true,
-    });
-    res.status(201).send({ user });
 }
+
+exports.isUser = (req, res, next) => {
+    let token;
+
+    if (
+        req.headers.authorization &&
+        req.headers.authorization.startsWith("Bearer ")
+    ) {
+        token = req.headers.authorization.split("Bearer ");
+    } else {
+        return res.status(403).send({
+            error: "UNAUTHORIZED",
+        });
+    }
+    getAuth()
+        .verifyIdToken(token[1])
+        .then((decodedToken) => {
+            req.user = decodedToken;
+            return (uid = decodedToken.uid);
+        })
+        .then((data) => {
+            const userDoc = db.collection("Users").doc(data);
+            const user = userDoc.get();
+            user.then((data) => {
+                if (data.exists) {
+                    next();
+                } else {
+                    res.status(403).send({
+                        error: "FORBIDDEN",
+                        message: "You aren't User",
+                    });
+                }
+            });
+        })
+        .catch((error) => {
+            if (error.code === "auth/id-token-expired") {
+                res.status(400).send({
+                    error: "TOKEN EXPIRED",
+                    message: "PLEASE LOGIN AGAIN !",
+                });
+            } else {
+                res.status(500).send({
+                    error: "INTERNAL SERVER ERROR",
+                });
+            }
+        });
+};
+
+
 
 
 
