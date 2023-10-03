@@ -5,7 +5,6 @@ const cors = require("cors");
 const cookieParser = require("cookie-parser");
 var logger = require("morgan");
 app.use(cors());
-const multer = require("multer");
 
 const authRouter = require("./routes/authRoutes");
 const userRouter = require("./routes/userRoutes");
@@ -22,10 +21,6 @@ app.get("/", (req, res) => {
   });
 });
 
-const upload = multer({
-  storage: multer.memoryStorage()
-})
-
 //run server
 const port = process.env.PORT || 3000;
 app.listen(port, () => {
@@ -37,4 +32,4 @@ app.use("/api", authRouter);
 app.use("/api", userRouter);
 app.use("/api", chatRouter);
 
-module.exports = {app, upload};
+module.exports =  app ;
