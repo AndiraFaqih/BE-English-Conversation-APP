@@ -43,7 +43,7 @@ exports.signUpUser = async (req, res) => {
         await db.collection('Users').doc(uid).set(userSchema, options);
         res.status(201).send({ 
             message: "User berhasil ditambahkan", 
-            token: token 
+            token: "Bearer " + token 
         });
     } catch (error) {
         const errorCode = error.code;
@@ -74,7 +74,7 @@ exports.signUpWithGoogle = async (req, res) => {
         await db.collection('Users').doc(uid).set(userSchema);
         res.status(201).send({
             message: "User berhasil ditambahkan",
-            token: token
+            token: "Bearer " + token 
         });
     } catch (error) {
         const errorCode = error.code;
@@ -112,7 +112,10 @@ exports.loginUser = async (req, res) => {
         );
 
         token = await userCredential.user.getIdToken();
-        res.status(200).send({ message: "Login berhasil", token: token });
+        res.status(200).send({ 
+            message: "Login berhasil", 
+            token: "Bearer " + token  
+        });
     } catch (error) {
         const errorCode = error.code;
         const errorMessage = error.message;
