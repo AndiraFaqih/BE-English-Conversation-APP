@@ -15,7 +15,7 @@ exports.authCheck = async (req, res, next) => {
         });
     }
     getAuth()
-    .verifyIdToken(token[1])
+    .verifyIdToken(token)
     .then((decodedToken) => {
         req.user = decodedToken;
         return (uid = decodedToken.uid);
