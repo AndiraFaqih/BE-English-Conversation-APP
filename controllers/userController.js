@@ -8,42 +8,54 @@ const {
   } = require("firebase/storage");
 
 //edit profile user
-exports.updateUserProfile = async (req) => {
-    const id = auth.currentUser.uid;
-    const storageRef = ref(
-      storage,
-      `profileImage/${req.file.originalname}-${Date.now()}`
-    );
-    const metadata = { contentType: req.file.mimetype };
-    const snapshot = await uploadBytesResumable(
-      storageRef,
-      req.file.buffer,
-      metadata
-    );
-    const downloadUrl = await getDownloadURL(snapshot.ref);
-    const { username } = req.body;
-    const UserDoc = db.collection("Users").doc(id);
-    const user = await UserDoc.get();
-    const response = user.data();
-    await updateProfile(auth.currentUser, {
-      photoURL: downloadUrl,
-    });
+exports.updateUserProfile = async (req, res) => {
+  const id = auth.currentUser.uid;
+
+  const storageRef = ref(
+    storage,
+    `profileImage/${req.file ? req.file.originalname : 'defaultFilename'}-${Date.now()}`
+  );
+
+  const metadata = { contentType: req.file ? req.file.mimetype : 'image/jpeg' };
+
+  let downloadUrl = auth.currentUser.photoURL;
+  if (req.file) {
+    const snapshot = await uploadBytesResumable(storageRef, req.file.buffer, metadata);
+    downloadUrl = await getDownloadURL(snapshot.ref);
+  }
+
+  const { username } = req.body;
+  const UserDoc = db.collection("Users").doc(id);
+  const user = await UserDoc.get();
+  const response = user.data();
+
+  if (username && !req.file) {
     await UserDoc.update({
-      createdAt: response.createdAt,
       username: username,
-      email: auth.currentUser.email,
-      photoProfile: auth.currentUser.photoURL,
       updatedAt: new Date().toISOString(),
     });
-    return [
-      {
-        createdAt: response.createdAt,
-        username: username,
-        email: auth.currentUser.email,
-        photoProfile: auth.currentUser.photoURL,
-        updatedAt: new Date().toISOString(),
-      },
-    ];
+  } else if (!username && req.file) {
+    await UserDoc.update({
+      photoProfile: downloadUrl,
+      updatedAt: new Date().toISOString(),
+    });
+  } else if (username && req.file) {
+    await UserDoc.update({
+      username: username,
+      photoProfile: downloadUrl,
+      updatedAt: new Date().toISOString(),
+    });
+  }
+
+  res.status(200).json([
+    {
+      createdAt: response.createdAt,
+      username: username || response.username,
+      email: auth.currentUser.email,
+      photoProfile: downloadUrl,
+      updatedAt: new Date().toISOString(),
+    },
+  ]);
 };
 
 //delete user account
