@@ -1,11 +1,12 @@
 const { auth, firestore, storage } = require('../config/firebaseConfig');
 const db = require('../models/index');
-const { updateProfile } = require("firebase/auth");
 const {
     getDownloadURL,
     uploadBytesResumable,
     ref,
+    deleteObject,
   } = require("firebase/storage");
+  const { deleteUser, signOut } = require("firebase/auth");
 
 //edit profile user
 exports.updateUserProfile = async (req, res) => {
@@ -60,15 +61,30 @@ exports.updateUserProfile = async (req, res) => {
 
 //delete user account
 exports.deleteUserAccount = async (req, res) => {
-    try {
-        const id = auth.currentUser.uid;
-        await db.collection("Users").doc(id).delete();
-        await auth.currentUser.delete();
-        res.status(200).send({ message: "User berhasil dihapus" });
-    } catch (error) {
-        res.status(400).send({ message: error });
-    }
-} 
+  const id = auth.currentUser.uid;
+  const user = auth.currentUser;
+  const userDoc = db.collection("Users").doc(id);
+  const users = await userDoc.get();
+  const data = users.data();
+  const fileUrl = data.photoProfile;
+  const storageRefPhotoProfile = ref(storage, fileUrl);
+  if (!data) {
+    return "Not Found";
+  } else if (fileUrl) {
+    await deleteObject(storageRefPhotoProfile);
+    await userDoc.delete();
+    await deleteUser(user).then(() => {
+      signOut(auth);
+      res.status(200).send({ message: "User Deleted" });
+    });
+  } else {
+    await userDoc.delete();
+    await deleteUser(user).then(() => {
+      signOut(auth);
+      res.status(200).send({ message: "User Deleted" });
+    });
+  }
+};
 
 //get user profile
 exports.getUserProfile = async (req, res) => {
