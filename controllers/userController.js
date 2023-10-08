@@ -30,30 +30,26 @@ exports.updateUserProfile = async (req, res) => {
   const user = await UserDoc.get();
   const response = user.data();
 
-  if (username && !req.file) {
-    await UserDoc.update({
-      username: username,
-      updatedAt: new Date().toISOString(),
-    });
-  } else if (!username && req.file) {
-    await UserDoc.update({
-      photoProfile: downloadUrl,
-      updatedAt: new Date().toISOString(),
-    });
-  } else if (username && req.file) {
-    await UserDoc.update({
-      username: username,
-      photoProfile: downloadUrl,
-      updatedAt: new Date().toISOString(),
-    });
+  const updateData = {
+    updatedAt: new Date().toISOString(),
+  };
+
+  if (username) {
+    updateData.username = username;
   }
+
+  if (req.file) {
+    updateData.photoProfile = downloadUrl;
+  }
+
+  await UserDoc.update(updateData);
 
   res.status(200).json([
     {
       createdAt: response.createdAt,
       username: username || response.username,
       email: auth.currentUser.email,
-      photoProfile: downloadUrl,
+      photoProfile: downloadUrl || response.photoProfile,
       updatedAt: new Date().toISOString(),
     },
   ]);
