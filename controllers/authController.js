@@ -4,6 +4,7 @@ const { createUserWithEmailAndPassword,
         signInWithEmailAndPassword 
     } = require('firebase/auth');
 const { auth } = require('../config/firebaseConfig');
+const {signOut} = require('firebase/auth');
 const bcrypt = require('bcrypt');
 const db = require('../models/index');
 
@@ -83,7 +84,6 @@ exports.signUpWithGoogle = async (req, res) => {
     }
 };
 
-//login user with comparing password with bcrypt
 exports.loginUser = async (req, res) => {
     let token;
     const user = {
@@ -124,14 +124,24 @@ exports.loginUser = async (req, res) => {
 };
 
 //sign out user
-exports.logoutUser = async (req, res) => {
+exports.logoutUser = (req, res) => {
     try {
-        await auth.signOut();
-        res.status(200).send({ message: "Sign out berhasil" });
+        if (auth.currentUser === null) {
+            res.status(400).send({
+                msg: "GO TO LOGIN FIRST",
+            });
+        } else {
+            signOut(auth).then(() => {
+                res.status(200).send({
+                    msg: "Logout Success",
+                });
+            });
+        }
     } catch (error) {
-        const errorCode = error.code;
-        const errorMessage = error.message;
-        res.status(400).send({ errorCode, errorMessage });
+        res.status(500).send({
+            msg: "INTERNAL SERVER ERROR",
+            errorCode: error.code,
+        });
     }
-}
+};
 
