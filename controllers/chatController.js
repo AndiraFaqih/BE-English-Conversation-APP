@@ -2,33 +2,38 @@ const { auth } = require('../config/firebaseConfig');
 const db = require('../models/index');
 
 exports.postChat = async (req, res) => {
-    const idUser = "123"; //temporary static idUser
+    const idUser = auth.currentUser.uid;
 
-    const chatText = req.body.chatText;
+    if (!idUser) {
+        return res.status(401).json({
+            status: 'error',
+            message: 'Pengguna tidak terautentikasi.',
+        });
+    }
+
+    const messageText = req.body.messageText;
 
     try {
-        const chatRef = await db.collection('chat').add({
+        const chatRef = await db.collection('Message').add({
             idUser: idUser,
+            messageText: messageText,
+            createdAt: new Date().toISOString(),
         });
 
         const chatId = chatRef.id;
+        const AIMessageText = req.body.AIMessageText;
 
-        const userChatRef = await db.collection('userChat').add({
-            idUser: idUser,
-            chatText: chatText,
-        });
-
-        const userChatId = userChatRef.id;
-
-        await db.collection('chat').doc(chatId).update({
-            userChatId: userChatId,
+        await db.collection('AIMessage').add({
+            idMessage: chatId,
+            AIMessageText: AIMessageText,
+            createdAt: new Date().toISOString(),
         });
 
         res.status(200).json({
             status: 'success',
             data: {
-                chatId: chatId,
-                userChatId: userChatId,
+                messageText: messageText,
+                AIMessageText: AIMessageText,
             },
         });
     } catch (error) {
