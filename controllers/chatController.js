@@ -14,17 +14,17 @@ exports.postChat = async (req, res) => {
     const messageText = req.body.messageText;
 
     try {
-        const chatRef = await db.collection('Message').add({
+        const messageRef = await db.collection('Message').add({
             idUser: idUser,
             messageText: messageText,
             createdAt: new Date().toISOString(),
         });
 
-        const chatId = chatRef.id;
-        const AIMessageText = req.body.AIMessageText;
+        const messageId = messageRef.id;
+        const AIMessageText = "A";
 
         await db.collection('AIMessage').add({
-            idMessage: chatId,
+            idMessage: messageId,
             AIMessageText: AIMessageText,
             createdAt: new Date().toISOString(),
         });
