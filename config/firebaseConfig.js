@@ -14,6 +14,7 @@ const firebaseConfig = {
   messagingSenderId: process.env.MESSENGINGSENDERID,
   appId: process.env.APPID,
   measurementId: process.env.MEASUREMENTID,
+  OpenAIAPIKey: process.env.OPENAIAPIKEY,
 };
 
 //initialize firebase
