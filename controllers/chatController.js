@@ -3,13 +3,26 @@ const db = require('../models/index');
 const { OpenAIAPIKey } = require('../config/firebaseConfig');
 const axios = require('axios');
 const OpenAI = require("openai");
+const dotenv = require("dotenv");
+dotenv.config();
 
 exports.postChat = async (req, res) => {
+    const OPENAIAPIKEY = process.env.OPENAI_API_KEY
+
     const openai = new OpenAI({
-        apiKey: OpenAIAPIKey,
+        apiKey: OPENAIAPIKEY,
     });
 
+    const inputVoice = "nova";
+    const inputModel = "tts-1";
+
     let chatHistory = [];
+
+    const url = "https://api.openai.com/v1/audio/speech";
+    const headers = {
+        Authorization: `Bearer ${OPENAIAPIKEY}`, // API key for authentication
+        'Content-Type': 'application/json'
+    };
 
 
     const idUser = req.user.uid;
@@ -24,6 +37,26 @@ exports.postChat = async (req, res) => {
     const messageText = req.body.messageText;
     const chatRoomId = req.params.chatRoomId;
 
+    // get chat history from database from the chat room
+    try {
+        const messagesSnapshot = await db.collection('Message').where('chatRoomId', '==', chatRoomId).get();
+
+        messagesSnapshot.forEach((doc) => {
+            const messageData = doc.data();
+            const message = {
+                role: messageData.idUser === idUser ? "user" : "assistant",
+                content: messageData.messageText,
+            };
+            chatHistory.push(message);
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({
+            status: 'error',
+            message: 'Terjadi kesalahan dalam mengambil chat.',
+        });
+    }
+
     // Prepare messages for the chatbot, including the user's text input
     const messages = [
         {
@@ -34,6 +67,8 @@ exports.postChat = async (req, res) => {
         ...chatHistory,
         { role: "user", content: messageText },
     ];
+
+    // Return Mp3 file
 
     try {
         // Access the Message collection directly
@@ -58,26 +93,6 @@ exports.postChat = async (req, res) => {
             { role: "assistant", content: aiChatResponseText }
         );
 
-        console.log(`Assistant said: ${aiChatResponseText}`);
-
-
-        // const openaiResponse = await axios.post(
-        //     'https://api.openai.com/v1/chat/completions',
-        //     {
-        //         model: 'gpt-3.5-turbo',
-        //         messages: [
-        //             { role: 'system', content: 'You are a chatbot assistant.' },
-        //             { role: 'user', content: messageText },
-        //         ],
-        //     },
-        //     {
-        //         headers: {
-        //             'Content-Type': 'application/json',
-        //             'Authorization': `Bearer ${OpenAIAPIKey}`,
-        //         },
-        //     }
-        // );
-
         // Access the AIMessage collection directly
         await db.collection('AIMessage').add({
             idMessage: messageId,
@@ -86,21 +101,114 @@ exports.postChat = async (req, res) => {
             chatRoomId: chatRoomId,
         });
 
-        res.status(200).json({
-            status: 'success',
-            data: {
-                messageText: messageText,
-                AIMessageText: aiChatResponseText,
-            },
+        console.log(`Assistant said: ${aiChatResponseText}`);
+        console.log(`Chat history: ${JSON.stringify(chatHistory)}`);
+
+        const data = {
+            model: inputModel,
+            input: aiChatResponseText,
+            voice: inputVoice,
+            response_format: "mp3",
+        };
+
+
+        const audioResponse = await axios.post(url, data, {
+            headers: headers,
+            responseType: "stream",
         });
+
+        // Set headers for audio content
+        res.set({ 'Content-Type': 'audio/mpeg', 'Content-Disposition': 'attachment; filename="response.mp3"' });
+
+        // Pipe audio stream to response
+        audioResponse.data.pipe(res);
     } catch (error) {
         console.error(error);
+        if (error.audioResponse) {
+            res.status(500).json({
+                status: 'error',
+                message: `Error with HTTP request: ${error.audioResponse.status} - ${error.audioResponse.statusText}`,
+            });
+        }
         res.status(500).json({
             status: 'error',
             message: 'Terjadi kesalahan dalam menambahkan chat.',
         });
     }
+
+    // Return text response
+
+    // try {
+    //     // Access the Message collection directly
+    //     const messageRef = await db.collection('Message').add({
+    //         idUser: idUser,
+    //         messageText: messageText,
+    //         createdAt: new Date().toISOString(),
+    //         chatRoomId: chatRoomId, // Include chatRoomId as a field
+    //     });
+
+    //     const messageId = messageRef.id;
+
+    //     // Send messages to the chatbot and get the response
+    //     const aiChatResponse = await openai.chat.completions.create({
+    //         messages: messages,
+    //         model: "gpt-3.5-turbo",
+    //     });
+    //     const aiChatResponseText = aiChatResponse.choices[0].message.content;
+
+    //     chatHistory.push(
+    //         { role: "user", content: messageText },
+    //         { role: "assistant", content: aiChatResponseText }
+    //     );
+
+    //     console.log(`Assistant said: ${aiChatResponseText}`);
+
+    //     // Access the AIMessage collection directly
+    //     await db.collection('AIMessage').add({
+    //         idMessage: messageId,
+    //         AIMessageText: aiChatResponseText,
+    //         createdAt: new Date().toISOString(),
+    //         chatRoomId: chatRoomId,
+    //     });
+
+    //     res.status(200).json({
+    //         status: 'success',
+    //         data: {
+    //             messageText: messageText,
+    //             AIMessageText: aiChatResponseText,
+    //         },
+    //     });
+    // } catch (error) {
+    //     console.error(error);
+    //     res.status(500).json({
+    //         status: 'error',
+    //         message: 'Terjadi kesalahan dalam menambahkan chat.',
+    //     });
+    // }
 };
+
+async function retrieveChatHistory(chatRoomId, idUser) {
+    let chatHistory = [];
+
+    // get chat history from database from the chat room
+    try {
+        const messagesSnapshot = await db.collection('Message').where('chatRoomId', '==', chatRoomId).orderBy('createdAt').get();
+
+        messagesSnapshot.forEach((doc) => {
+            const messageData = doc.data();
+            const message = {
+                role: messageData.idUser === idUser ? "user" : "assistant",
+                content: messageData.messageText,
+            };
+            chatHistory.push(message);
+        });
+    } catch (error) {
+        console.error('Error retrieving chat history:', error);
+        throw error;
+    }
+
+    return chatHistory;
+}
 
 exports.editChat = async (req, res) => {
     const idUser = req.user.uid;
