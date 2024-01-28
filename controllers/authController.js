@@ -85,7 +85,7 @@ exports.signUpWithGoogle = async (req, res) => {
 };
 
 exports.loginUser = async (req, res) => {
-    let token;
+    let token; 
     const user = {
         email: req.body.email,
         password: req.body.password,
