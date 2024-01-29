@@ -228,6 +228,103 @@ exports.postChat = async (req, res) => {
     // }
 };
 
+//postchat with text
+exports.postChatText = async (req, res) => {
+    const OPENAIAPIKEY = process.env.OPENAI_API_KEY;
+    const openai = new OpenAI({
+        apiKey: OPENAIAPIKEY,
+    });
+
+    let chatHistory = [];
+
+    const idUser = req.user.uid;
+    if (!idUser) {
+        return res.status(401).json({
+            status: 'error',
+            message: 'Pengguna tidak terautentikasi.',
+        });
+    }
+
+    const messageText = req.body.messageText;
+    const chatRoomId = req.params.chatRoomId;
+
+    try {
+        const messagesSnapshot = await db.collection('Message').where('chatRoomId', '==', chatRoomId).get();
+
+        messagesSnapshot.forEach((doc) => {
+            const messageData = doc.data();
+            chatHistory.push({
+                role: messageData.idUser === idUser ? "user" : "assistant",
+                content: messageData.messageText,
+            });
+        });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({
+            status: 'error',
+            message: 'Terjadi kesalahan dalam mengambil chat.',
+        });
+    }
+
+    const messages = [
+        {
+            role: "system",
+            content: "you are a firend to improve english skill ,If I ask for an explanation then answer with a short explanation with a maximum of 5 sentences, but if I'm just chatting normally then answer briefly like I'm chatting. Your name is Elara.",
+        },
+        ...chatHistory,
+        { role: "user", content: messageText },
+    ];
+
+    try {
+        const messageRef = await db.collection('Message').add({
+            idUser: idUser,
+            messageText: messageText,
+            createdAt: new Date().toISOString(),
+            chatRoomId: chatRoomId,
+        });
+
+        const messageId = messageRef.id;
+
+        let chatHistory = [];
+        const messagesSnapshot = await db.collection('Message').where('chatRoomId', '==', chatRoomId).get();
+
+        messagesSnapshot.forEach((doc) => {
+            const messageData = doc.data();
+            chatHistory.push({
+                role: messageData.idUser === idUser ? "user" : "assistant",
+                content: messageData.messageText,
+            });
+        });
+
+        const aiChatResponse = await openai.chat.completions.create({
+            messages: messages,
+            model: "gpt-3.5-turbo",
+        });
+        const aiChatResponseText = aiChatResponse.choices[0].message.content;
+
+        // Menyimpan respons ke dalam database
+        await db.collection('AIMessage').add({
+            idMessage: messageId,
+            AIMessageText: aiChatResponseText,
+            createdAt: new Date().toISOString(),
+            chatRoomId: chatRoomId,
+        });
+
+        // Mengirim respons teks kembali ke pengguna
+        return res.json({
+            status: 'success',
+            message: aiChatResponseText
+        });
+    } catch (error) {
+        console.error("Error:", error);
+        return res.status(500).json({
+            status: 'error',
+            message: 'Terjadi kesalahan saat berkomunikasi dengan OpenAI.',
+        });
+    }
+};
+
+
 async function retrieveChatHistory(chatRoomId, idUser) {
     let chatHistory = [];
 
