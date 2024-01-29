@@ -1,13 +1,21 @@
+const fs = require('fs');
+const { exec } = require('child_process');
 const { auth } = require('../config/firebaseConfig');
 const db = require('../models/index');
 const { OpenAIAPIKey } = require('../config/firebaseConfig');
 const axios = require('axios');
 const OpenAI = require("openai");
 const dotenv = require("dotenv");
+const ffmpeg = require('fluent-ffmpeg');
+const ffmpegStatic = require('ffmpeg-static');
+const path = require('path');
 dotenv.config();
+const ffprobeStatic = require('ffprobe-static');
+
 
 exports.postChat = async (req, res) => {
-    const OPENAIAPIKEY = process.env.OPENAI_API_KEY
+    ffmpeg.setFfprobePath(ffprobeStatic.path);
+    const OPENAIAPIKEY = process.env.OPENAI_API_KEY;
 
     const openai = new OpenAI({
         apiKey: OPENAIAPIKEY,
@@ -17,13 +25,13 @@ exports.postChat = async (req, res) => {
     const inputModel = "tts-1";
 
     let chatHistory = [];
+    let tempAudioFiles = []; // Array untuk menyimpan path file audio sementara
 
     const url = "https://api.openai.com/v1/audio/speech";
     const headers = {
-        Authorization: `Bearer ${OPENAIAPIKEY}`, // API key for authentication
+        Authorization: `Bearer ${OPENAIAPIKEY}`,
         'Content-Type': 'application/json'
     };
-
 
     const idUser = req.user.uid;
 
@@ -37,72 +45,57 @@ exports.postChat = async (req, res) => {
     const messageText = req.body.messageText;
     const chatRoomId = req.params.chatRoomId;
 
-    // get chat history from database from the chat room
     try {
         const messagesSnapshot = await db.collection('Message').where('chatRoomId', '==', chatRoomId).get();
 
         messagesSnapshot.forEach((doc) => {
             const messageData = doc.data();
-            const message = {
+            chatHistory.push({
                 role: messageData.idUser === idUser ? "user" : "assistant",
                 content: messageData.messageText,
-            };
-            chatHistory.push(message);
+            });
         });
     } catch (error) {
         console.error(error);
-        res.status(500).json({
+        return res.status(500).json({
             status: 'error',
             message: 'Terjadi kesalahan dalam mengambil chat.',
         });
     }
 
-    // Prepare messages for the chatbot, including the user's text input
     const messages = [
         {
             role: "system",
-            content:
-                "You are a helpful assistant providing concise responses in at most two sentences. Your name is Elara.",
+            content: "You are a helpful assistant providing concise responses in at most two sentences. Your name is Elara.",
         },
         ...chatHistory,
         { role: "user", content: messageText },
     ];
 
-    // Return Mp3 file
-
     try {
-        // Access the Message collection directly
         const messageRef = await db.collection('Message').add({
             idUser: idUser,
             messageText: messageText,
             createdAt: new Date().toISOString(),
-            chatRoomId: chatRoomId, // Include chatRoomId as a field
+            chatRoomId: chatRoomId,
         });
 
         const messageId = messageRef.id;
 
-        // Send messages to the chatbot and get the response
         const aiChatResponse = await openai.chat.completions.create({
             messages: messages,
             model: "gpt-3.5-turbo",
         });
         const aiChatResponseText = aiChatResponse.choices[0].message.content;
 
-        chatHistory.push(
-            { role: "user", content: messageText },
-            { role: "assistant", content: aiChatResponseText }
-        );
+        chatHistory.push({ role: "user", content: messageText }, { role: "assistant", content: aiChatResponseText });
 
-        // Access the AIMessage collection directly
         await db.collection('AIMessage').add({
             idMessage: messageId,
             AIMessageText: aiChatResponseText,
             createdAt: new Date().toISOString(),
             chatRoomId: chatRoomId,
         });
-
-        console.log(`Assistant said: ${aiChatResponseText}`);
-        console.log(`Chat history: ${JSON.stringify(chatHistory)}`);
 
         const data = {
             model: inputModel,
@@ -111,30 +104,78 @@ exports.postChat = async (req, res) => {
             response_format: "mp3",
         };
 
-
         const audioResponse = await axios.post(url, data, {
             headers: headers,
             responseType: "stream",
         });
 
-        // Set headers for audio content
-        res.set({ 'Content-Type': 'audio/mpeg', 'Content-Disposition': 'attachment; filename="response.mp3"' });
+        const tempFilePath = `tempAudio-${Date.now()}.mp3`;
+        const writer = fs.createWriteStream(tempFilePath);
+        audioResponse.data.pipe(writer);
+        tempAudioFiles.push(tempFilePath);
 
-        // Pipe audio stream to response
-        audioResponse.data.pipe(res);
     } catch (error) {
         console.error(error);
         if (error.audioResponse) {
-            res.status(500).json({
+            return res.status(500).json({
                 status: 'error',
                 message: `Error with HTTP request: ${error.audioResponse.status} - ${error.audioResponse.statusText}`,
             });
         }
-        res.status(500).json({
+        return res.status(500).json({
             status: 'error',
             message: 'Terjadi kesalahan dalam menambahkan chat.',
         });
     }
+
+    ffmpeg.setFfmpegPath(ffmpegStatic);
+
+    // Fungsi untuk menggabungkan file audio
+    const mergeAudioFiles = (files, outputPath) => {
+        return new Promise((resolve, reject) => {
+            let command = ffmpeg();
+
+            files.forEach(file => {
+                command = command.input(file);
+            });
+
+            command
+                .on('error', (err) => {
+                    console.error(`Error: ${err.message}`);
+                    reject(err);
+                })
+                .on('end', () => {
+                    console.log('Audio files merged successfully');
+                    resolve(outputPath);
+                })
+                .mergeToFile(outputPath, '/tmp');
+        });
+    };
+
+    try {
+        const mergedAudioName = `mergedAudio-${Date.now()}.mp3`;
+        //create file path for merged audio linear with app.js
+        const mergedAudioPath = path.join(__dirname, '..', 'temp', mergedAudioName);
+        await mergeAudioFiles(tempAudioFiles, mergedAudioPath);
+        
+        res.sendFile(mergedAudioPath, function(err) {
+            if (err) {
+                console.error("Error sending file:", err);
+                res.status(500).send("Internal Server Error");
+            } else {
+                console.log("File sent successfully.");
+    
+                // Bersihkan: Hapus file sementara dan file gabungan
+                tempAudioFiles.forEach(file => fs.unlinkSync(file));
+                fs.unlinkSync(mergedAudioPath);
+            }
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).send('Error in merging audio files');
+    }
+
+
 
     // Return text response
 
