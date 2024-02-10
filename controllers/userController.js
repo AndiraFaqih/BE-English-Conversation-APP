@@ -10,7 +10,7 @@ const { getAuth } = require('firebase-admin/auth');
 
 //edit profile user
 exports.updateUserProfile = async (req, res) => {
-  const id = req.user.uid;
+  const id = req.uid;
   console.log("1");
   console.log(id);
   const storageRef = ref(
@@ -66,7 +66,7 @@ exports.updateUserProfile = async (req, res) => {
 };
 
 exports.deleteUserAccount = async (req, res) => {
-  const uid = req.user.uid;
+  const uid = req.uid;
   const userDoc = db.collection("Users").doc(uid);
   const users = await userDoc.get();
   const data = users.data();
@@ -92,7 +92,7 @@ exports.deleteUserAccount = async (req, res) => {
 //get user profile
 exports.getUserProfile = async (req, res) => {
     try {
-        const id = req.user.uid;
+        const id = req.uid ;
         const user = await db.collection("Users").doc(id).get();
         const response = user.data();
         res.status(200).send(response);

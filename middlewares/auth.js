@@ -92,6 +92,7 @@
 
 const { getAuth } = require('firebase-admin/auth');
 const db = require('../models/index');
+const admin = require('firebase-admin');
 
 exports.authCheck = async (req, res, next) => {
     let token;
@@ -108,7 +109,7 @@ exports.authCheck = async (req, res, next) => {
     }
 
     try {
-        const decodedToken = await getAuth().verifyIdToken(token);
+        const decodedToken = await admin.auth().verifyIdToken(token);
         req.user = decodedToken;
         req.uid = decodedToken.uid; // Menambahkan UID ke req
 
@@ -118,25 +119,48 @@ exports.authCheck = async (req, res, next) => {
     }
 }
 
+// exports.isUser = async (req, res, next) => {
+//     try {
+//         const decodedToken = await getAuth().verifyIdToken(req.headers.authorization.split(' ')[1]);
+//         req.user = decodedToken;
+//         req.uid = decodedToken.uid; // Menambahkan UID ke req
+
+//         const userDoc = db.collection("Users").doc(req.uid);
+//         const user = await userDoc.get();
+
+//         if (user.exists) {
+//             next();
+//         } else {
+//             res.status(403).send({
+//                 error: "FORBIDDEN",
+//                 message: "You aren't User",
+//             });
+//         }
+//     } catch (error) {
+//         handleAuthError(res, error);
+//     }
+// };
+
 exports.isUser = async (req, res, next) => {
     try {
-        const decodedToken = await getAuth().verifyIdToken(req.headers.authorization.split(' ')[1]);
-        req.user = decodedToken;
-        req.uid = decodedToken.uid; // Menambahkan UID ke req
-
-        const userDoc = db.collection("Users").doc(req.uid);
-        const user = await userDoc.get();
-
-        if (user.exists) {
-            next();
-        } else {
-            res.status(403).send({
-                error: "FORBIDDEN",
-                message: "You aren't User",
+        if (!req.headers.authorization || !req.headers.authorization.startsWith('Bearer ')) {
+            return res.status(401).send({
+                error: "UNAUTHORIZED",
+                message: "No authentication token provided.",
             });
         }
+
+        const idToken = req.headers.authorization.split('Bearer ')[1];
+        const decodedToken = await admin.auth().verifyIdToken(idToken);
+        
+        req.user = decodedToken;
+        req.uid = decodedToken.uid;
+
+        next(); 
+
     } catch (error) {
-        handleAuthError(res, error);
+        // Handle any errors that occurred during the process
+        return handleAuthError(res, error);
     }
 };
 
