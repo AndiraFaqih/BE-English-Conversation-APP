@@ -30,7 +30,7 @@ exports.postChat = async (req, res) => {
         'Content-Type': 'application/json'
     };
 
-    const idUser = req.user.uid;
+    const idUser = req.uid;
 
     if (!idUser) {
         return res.status(401).json({
@@ -198,7 +198,7 @@ exports.postChatText = async (req, res) => {
 
     let chatHistory = [];
 
-    const idUser = req.user.uid;
+    const idUser = req.uid;
     if (!idUser) {
         return res.status(401).json({
             status: 'error',
@@ -317,7 +317,7 @@ exports.editChat = async (req, res) => {
 
     let chatHistory = [];
 
-    const idUser = req.user.uid;
+    const idUser = req.uid ;
     if (!idUser) {
         return res.status(401).json({
             status: 'error',
@@ -414,7 +414,7 @@ exports.editChatText = async (req, res) => {
 
     let chatHistory = [];
 
-    const idUser = req.user.uid;
+    const idUser = req.uid;
     if (!idUser) {
         return res.status(401).json({
             status: 'error',
@@ -542,7 +542,7 @@ exports.editChatText = async (req, res) => {
 };
 
 exports.deleteChat = async (req, res) => {
-    const idUser = req.user.uid;
+    const idUser = req.uid;
 
     if (!idUser) {
         return res.status(401).json({
@@ -599,7 +599,12 @@ exports.deleteChat = async (req, res) => {
 };
 
 exports.createChatRoom = async (req, res) => {
-    const idUser = req.user.uid;
+    const idUser = req.uid;
+    console.log(idUser);
+    const user = req.user;
+    console.log(user);
+    const id = req.uid;
+    console.log(id);
 
     if (!idUser) {
         return res.status(401).json({
@@ -631,7 +636,7 @@ exports.createChatRoom = async (req, res) => {
 };
 
 exports.getUserChatRooms = async (req, res) => {
-    const idUser = req.user.uid;
+    const idUser = req.uid;
 
     if (!idUser) {
         return res.status(401).json({
@@ -661,7 +666,7 @@ exports.getUserChatRooms = async (req, res) => {
 };
 
 exports.deleteChatRoom = async (req, res) => {
-    const idUser = req.user.uid;
+    const idUser = req.uid;
     const chatRoomId = req.params.chatRoomId;
 
     if (!idUser) {
