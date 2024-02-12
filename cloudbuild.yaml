@@ -1,0 +1,12 @@
+steps:
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['build', '-t', 'gcr.io/elarise/elarise-api', '.']
+
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['push', 'gcr.io/elarise/elarise-api']
+
+- name: 'gcr.io/cloud-builders/gcloud'
+  args: ['run', 'deploy', 'elarise-api', '--image', 'gcr.io/elarise/elarise-api', '--allow-unauthenticated', '--region', 'asia-southeast2']
+
+options:
+  logging: CLOUD_LOGGING_ONLY
