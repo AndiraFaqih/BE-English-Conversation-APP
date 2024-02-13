@@ -166,14 +166,31 @@ exports.isUser = async (req, res, next) => {
 
 // Fungsi untuk menangani kesalahan autentikasi
 const handleAuthError = (res, error) => {
-    if (error.code === "auth/id-token-expired") {
-        res.status(400).send({
-            error: "TOKEN EXPIRED",
-            message: "PLEASE LOGIN AGAIN!",
-        });
-    } else {
-        res.status(500).send({
-            error: "INTERNAL SERVER ERROR",
+    // if (error.code === "auth/id-token-expired") {
+    //     res.status(400).send({
+    //         error: "TOKEN EXPIRED",
+    //         message: "PLEASE LOGIN AGAIN!",
+    //     });
+    // } else {
+    //     res.status(500).send({
+    //         error: "INTERNAL SERVER ERROR",
+    //     });
+    // }
+    try {
+        if (error.code === "auth/id-token-expired") {
+            return res.status(400).send({
+                error: "TOKEN EXPIRED"
+            });
+        } else {
+            return res.status(500).send({
+                error: "INTERNAL SERVER ERRORRR",
+            });
+        }
+    }
+    catch (error) {
+        const errorm = error.message
+        return res.status(500).send({
+            errorm
         });
     }
 };
