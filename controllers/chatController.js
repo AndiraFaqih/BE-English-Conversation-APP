@@ -518,7 +518,6 @@ exports.editChatText = async (req, res) => {
 
         // Menunggu penulisan file selesai
         writer.on('finish', () => {
-            // Mengganti file audio yang lama dengan yang baru
             const oldFile = path.join(outputDir, 'audioResponse.mp3');
             fs.renameSync(outputFile, oldFile);
 
