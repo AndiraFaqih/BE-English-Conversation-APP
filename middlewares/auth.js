@@ -182,11 +182,14 @@ const handleAuthError = (res, error) => {
                 error: "TOKEN EXPIRED"
             });
         } else {
+            // Using the error's default message, if available
+            const defaultMessage = "An error occurred, please try again later.";
+            const errorMessage = error.message ? error.message : defaultMessage;
             return res.status(500).send({
-                error: "INTERNAL SERVER ERRORRR",
+                error: errorMessage
             });
         }
-    }
+    }    
     catch (error) {
         const errorm = error.message
         return res.status(500).send({
