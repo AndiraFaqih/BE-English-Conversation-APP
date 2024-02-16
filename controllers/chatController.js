@@ -271,7 +271,7 @@ exports.postChatText = async (req, res) => {
             chatRoomId: chatRoomId,
         });
 
-        // Mengirim respons teks kembali ke pengguna
+        // Mengirim respons teks kembali ke pengguna..
         return res.json({
             status: 'success',
             message: aiChatResponseText
