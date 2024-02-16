@@ -41,7 +41,6 @@ exports.signUpUser = async (req, res) => {
         // const options = {
         //     ignoreUndefinedProperties: true,
         // };
-
         // await db.collection('Users').doc(uid).set(userSchema, options);
         res.status(201).send({ 
             UUID: userCredential.user.uid,
