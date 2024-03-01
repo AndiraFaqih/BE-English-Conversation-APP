@@ -15,7 +15,7 @@
 require('dotenv').config();
 const admin = require("firebase-admin");
 // const serviceAccount = require("../firebase-key.json");
-const serviceAccount = JSON.parse(process.env.FIREBASEKEY);
+const serviceAccount = JSON.parse(process.env.FIREBASE_KEY);
 
 class FirebaseAdmin {
     static db;
