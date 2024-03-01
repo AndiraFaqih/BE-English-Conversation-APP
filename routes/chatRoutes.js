@@ -1,17 +1,32 @@
 const express = require("express");
-const  controller  = require("../controllers/chatController");
+const ChatController = require("../controllers/chatController");
 const { authCheck, isUser } = require("../middlewares/auth");
-const router = express.Router();
 
-router.post("/roomchat/:chatRoomId/text-to-audio",authCheck, isUser, controller.postChat);
-router.post("/roomchat/:chatRoomId/text-to-text",authCheck, isUser, controller.postChatText);
-router.put("/roomchat/:chatRoomId/text-to-audio/:idMessage", authCheck, isUser, controller.editChat);
-router.put("/roomchat/:chatRoomId/text-to-text/:idMessage", authCheck, isUser, controller.editChatText);
-router.delete("/roomchat/:chatRoomId/chat/:idMessage", authCheck, isUser, controller.deleteChat);
+class ChatRoutes {
+    constructor() {
+        this.router = express.Router();
+        this.initializeRoutes();
+    }
 
-router.post("/roomchat",authCheck, isUser, controller.createChatRoom);
-router.get("/roomchat",authCheck, isUser, controller.getUserChatRooms);
-router.delete("/roomchat/:chatRoomId", authCheck, isUser, controller.deleteChatRoom);
+    initializeRoutes() {
+        // this.router.post("/chatroom/:chatRoomId/text-to-audio", authCheck, isUser, ChatController.postChat);
+        this.router.post("/chatroom/:chatRoomId/talk-freely", authCheck, isUser, ChatController.postChatText);
+        this.router.post("/chatroom/:chatRoomId/grammar", authCheck, isUser, ChatController.postChatGrammar);
+        this.router.put("/chatroom/:chatRoomId/edit-text/:idMessage", authCheck, isUser, ChatController.editChat);
+        // this.router.put("/chatroom/:chatRoomId/text-to-audio/:idMessage", authCheck, isUser, ChatController.editChatText);
+        this.router.put("/chatroom/:chatRoomId", authCheck, isUser, ChatController.editChatRoom);
+        this.router.delete("/chatroom/:chatRoomId/chat/:idMessage", authCheck, isUser, ChatController.deleteChat);
 
+        this.router.post("/chatroom-voice", authCheck, isUser, ChatController.createChatRoomVoice);
+        this.router.post("/chatroom-grammar", authCheck, isUser, ChatController.createChatRoomText);
+        this.router.get("/chatroom-voice", authCheck, isUser, ChatController.getUserChatRoomVoice);
+        this.router.get("/chatroom-grammar", authCheck, isUser, ChatController.getUserChatRoomText);
+        this.router.delete("/chatroom/:chatRoomId", authCheck, isUser, ChatController.deleteChatRoom);
+    }
 
-module.exports = router;
+    getRouter() {
+        return this.router;
+    }
+}
+
+module.exports = new ChatRoutes().getRouter();
