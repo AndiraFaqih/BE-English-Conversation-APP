@@ -237,50 +237,55 @@ class UserController {
     //     ]);
     // }
 
-    // static async deleteUserAccount(req, res) {
-    //     const uid = req.uid;
-    //     const userDoc = db.collection("Users").doc(uid);
-    //     const users = await userDoc.get();
-    //     const data = users.data();
-    //     const fileUrl = data.photoProfile;
+static async deleteUserAccount(req, res) {
+    const uid = req.uid;
+    try {
+        const chatRoomsSnapshot = await db.collection('ChatRooms')
+            .where('idUser', '==', uid)
+            .get();
 
-    //     if (!data) {
-    //         res.status(404).send({ message: "User Not Found" });
-    //     } else {
-    //         try {
-    //             if (fileUrl) {
-    //                 const storageRefPhotoProfile = ref(storage, fileUrl);
-    //                 await deleteObject(storageRefPhotoProfile);
-    //             }
-    //             await userDoc.delete();
-    //             await getAuth().deleteUser(uid);
-    //             res.status(200).send({ message: "User Deleted" });
-    //         } catch (error) {
-    //             res.status(500).send({ message: error });
-    //         }
-    //     }
-    // }
-    static async deleteUserAccount(req, res) {
-      const uid = req.uid;
-      try {
-          const userData = await getAuth().getUser(uid);
-          if (userData) {
-              const fileUrl = userData.photoURL;
-              if (fileUrl) {
-                  const storageRefPhotoProfile = ref(storage, fileUrl);
-                  await deleteObject(storageRefPhotoProfile);
-              }
-          }
-          await getAuth().deleteUser(uid);
-  
-          res.status(200).send({ message: "User account deleted successfully" });
-      } catch (error) {
-          console.error("Error deleting user account:", error);
-          res.status(500).send({ message: "Failed to delete user account" });
-      }
-  }
-  
-  
+        const deletePromises = chatRoomsSnapshot.docs.map(async (doc) => {
+            const chatRoomId = doc.id;
+
+            const messagesSnapshot = await db.collection('Message')
+                .where('chatRoomId', '==', chatRoomId)
+                .get();
+                
+            const deleteMessagePromises = messagesSnapshot.docs.map(async (messageDoc) => {
+                await db.collection('Message').doc(messageDoc.id).delete();
+            });
+            await Promise.all(deleteMessagePromises);
+
+            const AIMessagesSnapshot = await db.collection('AIMessage')
+                .where('chatRoomId', '==', chatRoomId)
+                .get();
+
+            const deleteAIMessagePromises = AIMessagesSnapshot.docs.map(async (AIMessageDoc) => {
+                await db.collection('AIMessage').doc(AIMessageDoc.id).delete();
+            });
+            await Promise.all(deleteAIMessagePromises);
+
+            await db.collection('ChatRooms').doc(chatRoomId).delete();
+        });
+
+        await Promise.all(deletePromises);
+
+        const userData = await getAuth().getUser(uid);
+        if (userData) {
+            const fileUrl = userData.photoURL;
+            if (fileUrl) {
+                const storageRefPhotoProfile = ref(storage, fileUrl);
+                await deleteObject(storageRefPhotoProfile);
+            }
+        }
+        await getAuth().deleteUser(uid);
+
+        res.status(200).send({ message: "User account deleted successfully" });
+    } catch (error) {
+        console.error("Error deleting user account:", error);
+        res.status(500).send({ message: "Failed to delete user account" });
+    }
+}
 
     static async getUserProfile(req, res) {
       const uid = req.uid; // UID pengguna diambil dari middleware autentikasi

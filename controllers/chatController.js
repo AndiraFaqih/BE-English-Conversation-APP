@@ -1519,7 +1519,7 @@ class ChatController {
 
     static async getUserChatRoomVoice(req, res) {
         const idUser = req.uid;
-
+    
         if (!idUser) {
             return res.status(401).json({
                 status: 'error',
@@ -1532,11 +1532,26 @@ class ChatController {
                 .where('idUser', '==', idUser)
                 .where('type', '==', 'voice')
                 .get();
-
+            
             const chatRooms = [];
-            chatRoomsSnapshot.forEach(doc => {
-                chatRooms.push({ id: doc.id, ...doc.data() });
-            });
+            for (const doc of chatRoomsSnapshot.docs) {
+                const chatRoom = { id: doc.id, ...doc.data() };
+    
+                // Get the last AIMEssageText message for this chat room
+                const lastMessageSnapshot = await db.collection('AIMessage')
+                    .where('chatRoomId', '==', doc.id)
+                    .orderBy('createdAt', 'desc')
+                    .limit(1)
+                    .get();
+
+                if (!lastMessageSnapshot.empty) {
+                    chatRoom.lastAIMessageText = lastMessageSnapshot.docs[0].data().AIMessageText;
+                } else {
+                    chatRoom.lastAIMEssageText = "empty chat room";
+                }
+    
+                chatRooms.push(chatRoom);
+            }
     
             return res.status(200).json({
                 status: 'success',
@@ -1553,7 +1568,7 @@ class ChatController {
 
     static async getUserChatRoomText(req, res) {
         const idUser = req.uid;
-
+    
         if (!idUser) {
             return res.status(401).json({
                 status: 'error',
@@ -1566,11 +1581,26 @@ class ChatController {
                 .where('idUser', '==', idUser)
                 .where('type', '==', 'Text')
                 .get();
-
+            
             const chatRooms = [];
-            chatRoomsSnapshot.forEach(doc => {
-                chatRooms.push({ id: doc.id, ...doc.data() });
-            });
+            for (const doc of chatRoomsSnapshot.docs) {
+                const chatRoom = { id: doc.id, ...doc.data() };
+    
+                // Get the last AIMEssageText message for this chat room
+                const lastMessageSnapshot = await db.collection('AIMessage')
+                    .where('chatRoomId', '==', doc.id)
+                    .orderBy('createdAt', 'desc')
+                    .limit(1)
+                    .get();
+
+                if (!lastMessageSnapshot.empty) {
+                    chatRoom.lastAIMessageText = lastMessageSnapshot.docs[0].data().AIMessageText;
+                } else {
+                    chatRoom.lastAIMEssageText = "empty chat room";
+                }
+    
+                chatRooms.push(chatRoom);
+            }
     
             return res.status(200).json({
                 status: 'success',
