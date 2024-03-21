@@ -993,8 +993,6 @@ class ChatController {
         try {
             const message = new Message(idUser, messageText, chatRoomId);
             const messageRef = await db.collection('Message').add(message.getAllMessage());
-            console.log(messageRef);
-    
             const messageId = messageRef.id;
     
             let chatHistory = [];
@@ -1016,12 +1014,13 @@ class ChatController {
     
             // Menyimpan respons ke dalam database
             const aimessage = new AIMessage(messageId, aiChatResponseText, chatRoomId);
-            await db.collection('AIMessage').add(aimessage.getAllAIMessage());
-    
+            const AIMessageRef = await db.collection('AIMessage').add(aimessage.getAllAIMessage());
             // Mengirim respons teks kembali ke pengguna
             return res.json({
                 status: 'success',
-                message: aiChatResponseText
+                message: aiChatResponseText,
+                idMessage: messageId,
+                idAiMessage: AIMessageRef.id,
             });
         } catch (error) {
             console.error("Error:", error);
@@ -1041,7 +1040,6 @@ class ChatController {
         let chatHistory = [];
     
         const idUser = req.uid;
-        console.log(idUser);
         if (!idUser) {
             return res.status(401).json({
                 status: 'error',
@@ -1082,7 +1080,6 @@ class ChatController {
         try {
             const message = new Message(idUser, messageText, chatRoomId);
             const messageRef = await db.collection('Message').add(message.getAllMessage());
-            console.log(messageRef);
     
             const messageId = messageRef.id;
     
@@ -1105,12 +1102,15 @@ class ChatController {
     
             // Menyimpan respons ke dalam database
             const aimessage = new AIMessage(messageId, aiChatResponseText, chatRoomId);
-            await db.collection('AIMessage').add(aimessage.getAllAIMessage());
+            const AIMessageRef = await db.collection('AIMessage').add(aimessage.getAllAIMessage());
     
             // Mengirim respons teks kembali ke pengguna
             return res.json({
                 status: 'success',
-                message: aiChatResponseText
+                message: aiChatResponseText,
+                idMessage: messageId,
+                AIMessageId: AIMessageRef.id,
+
             });
         } catch (error) {
             console.error("Error:", error);
@@ -1411,7 +1411,6 @@ class ChatController {
 
     static async createChatRoomVoice(req, res) {
         const idUser = req.uid;
-        console.log(auth);
     
         if (!idUser) {
             return res.status(401).json({
