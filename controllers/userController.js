@@ -317,10 +317,13 @@ static async deleteUserAccount(req, res) {
 
     static async changePassword(req, res) {
         const id = req.uid; 
-        const { oldPassword, newPassword, confirmPassword } = req.body; 
+        const { newPassword, confirmPassword } = req.body; 
 
         try {
-            // Update password pengguna dengan Firebase Admin SDK
+            if (newPassword !== confirmPassword) {
+                return res.status(400).send({ message: "Password and confirm password do not match" });
+            }
+
             await getAuth().updateUser(id, { password: newPassword });
 
             res.status(200).send({ message: "Password updated successfully" });
