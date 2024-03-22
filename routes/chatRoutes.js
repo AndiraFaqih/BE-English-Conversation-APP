@@ -21,6 +21,7 @@ class ChatRoutes {
         this.router.post("/chatroom-grammar", authCheck, isUser, ChatController.createChatRoomText);
         this.router.get("/get-all-chatroom-voice", authCheck, isUser, ChatController.getUserChatRoomVoice);
         this.router.get("/get-all-chatroom-grammar", authCheck, isUser, ChatController.getUserChatRoomText);
+        this.router.get("/chatroom/:chatRoomId", authCheck, isUser, ChatController.getChatRoomData);
         this.router.delete("/chatroom/:chatRoomId", authCheck, isUser, ChatController.deleteChatRoom);
     }
 

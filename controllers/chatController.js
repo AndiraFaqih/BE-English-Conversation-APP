@@ -1713,6 +1713,74 @@ class ChatController {
             });
         }
     }
+
+    //get data chatroom
+    static async getChatRoomData(req, res) {
+        const idUser = req.uid;
+        const chatRoomId = req.params.chatRoomId;
+    
+        if (!idUser) {
+            return res.status(401).json({
+                status: 'error',
+                message: 'User not authenticated.',
+            });
+        }
+    
+        try {
+            const chatRoomRef = db.collection('ChatRooms').doc(chatRoomId);
+            const chatRoomDoc = await chatRoomRef.get();
+    
+            if (!chatRoomDoc.exists || chatRoomDoc.data().idUser !== idUser) {
+                return res.status(404).json({
+                    status: 'error',
+                    message: 'Chat room not found or user does not have permission.',
+                });
+            }
+
+            //get message and ai message inside chatroomdoc
+            const messagesQuery = db.collection('Message').where('chatRoomId', '==', chatRoomId);
+            const messagesSnapshot = await messagesQuery.orderBy('createdAt', 'asc').get();
+            const messages = [];
+            messagesSnapshot.forEach((doc) => {
+                messages.push({
+                    id: doc.id,
+                    ...doc.data(),
+                });
+            });
+
+            const AIMessagesQuery = db.collection('AIMessage').where('chatRoomId', '==', chatRoomId);
+            //orderby acs
+            const AIMessagesSnapshot = await AIMessagesQuery.orderBy('createdAt', 'asc').get();
+            const AIMessages = [];
+            AIMessagesSnapshot.forEach((doc) => {
+                AIMessages.push({
+                    id: doc.id,
+                    ...doc.data(),
+                });
+            });
+
+            const chatData = [];
+            for (let i = 0; i < messages.length; i++) {
+                chatData.push({
+                    message: messages[i],
+                    AIMessage: AIMessages[i],
+                });
+            }
+
+            return res.status(200).json({
+                status: 'success',
+                chatRoomId: chatRoomId,
+                data: chatData,
+            });
+
+        } catch (error) {
+            console.error('Error retrieving chat room: ', error);
+            return res.status(500).json({
+                status: 'error',
+                message: 'Failed to retrieve chat room.',
+            });
+        }
+    }
 }
 
 module.exports = ChatController;
