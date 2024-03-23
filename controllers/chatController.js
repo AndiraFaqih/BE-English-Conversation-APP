@@ -1018,8 +1018,8 @@ class ChatController {
             // Mengirim respons teks kembali ke pengguna
             return res.json({
                 status: 'success',
-                message: aiChatResponseText,
                 userMessage: messageText,
+                message: aiChatResponseText,
                 idMessage: messageId,
                 idAiMessage: AIMessageRef.id,
             });
@@ -1204,8 +1204,8 @@ class ChatController {
     
             res.status(200).json({
                 status: 'success',
-                message: aiChatResponseText,
                 userMessage: messageText,
+                message: aiChatResponseText,
                 // data: {
                 //     messageText: messageText,
                 //     AIMessageText: aiChatResponseText,
