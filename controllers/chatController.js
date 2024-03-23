@@ -1019,6 +1019,7 @@ class ChatController {
             return res.json({
                 status: 'success',
                 message: aiChatResponseText,
+                userMessage: messageText,
                 idMessage: messageId,
                 idAiMessage: AIMessageRef.id,
             });
@@ -1203,10 +1204,12 @@ class ChatController {
     
             res.status(200).json({
                 status: 'success',
-                data: {
-                    messageText: messageText,
-                    AIMessageText: aiChatResponseText,
-                },
+                message: aiChatResponseText,
+                userMessage: messageText,
+                // data: {
+                //     messageText: messageText,
+                //     AIMessageText: aiChatResponseText,
+                // },
             });
     
         } catch (error) {
