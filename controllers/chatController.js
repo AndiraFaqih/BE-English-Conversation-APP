@@ -984,7 +984,7 @@ class ChatController {
         const messages = [
             {
                 role: "system",
-                content: "you are a firend to improve english skill ,If I ask for an explanation then answer with a short explanation with a maximum of 5 sentences, but if I'm just chatting normally then answer briefly like I'm chatting. Your name is Elara.",
+                content: "you are a friend to improve english skill ,If I ask for an explanation then answer with a short explanation with a maximum of 5 sentences, but if I'm just chatting normally then answer briefly like I'm chatting. Your name is Elara.",
             },
             ...chatHistory,
             { role: "user", content: messageText },
@@ -1072,7 +1072,7 @@ class ChatController {
         const messages = [
             {
                 role: "system",
-                content: "you are a firend to improve english skill ,If I ask for an explanation then answer with a short explanation with a maximum of 5 sentences, but if I'm just chatting normally then answer briefly like I'm chatting, your response is consist of 2 paragraph the first paragraph is your answer about the chat, the second paragraph is a note that you give to the sender about correction for the grammar. Your name is Elara.",
+                content: "you are a friend to improve english skill ,If I ask for an explanation then answer with a short explanation with a maximum of 5 sentences, but if I'm just chatting normally then answer briefly like I'm chatting, your response is consist of 2 paragraph the first paragraph is your answer about the chat, the second paragraph is a note that you give to the sender about correction for the grammar. Your name is Elara.",
             },
             ...chatHistory,
             { role: "user", content: messageText },
@@ -1108,6 +1108,7 @@ class ChatController {
             // Mengirim respons teks kembali ke pengguna
             return res.json({
                 status: 'success',
+                userMessage: messageText,
                 message: aiChatResponseText,
                 idMessage: messageId,
                 AIMessageId: AIMessageRef.id,
@@ -1159,7 +1160,7 @@ class ChatController {
             const messages = [
                 {
                     role: "system",
-                    content: "you are a friend to improve English skill. If I ask for an explanation then answer with a short explanation with a maximum of 5 sentences, but if I'm just chatting normally then answer briefly like I'm chatting. Your name is Elara.",
+                    content: "you are a friend to improve english skill ,If I ask for an explanation then answer with a short explanation with a maximum of 5 sentences, but if I'm just chatting normally then answer briefly like I'm chatting, your response is consist of 2 paragraph the first paragraph is your answer about the chat, the second paragraph is a note that you give to the sender about correction for the grammar. Your name is Elara.",
                 },
                 ...chatHistory
             ];
