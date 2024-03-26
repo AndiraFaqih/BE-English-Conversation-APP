@@ -771,36 +771,36 @@ class ChatController {
     static async postChat(req, res) {
         ffmpeg.setFfprobePath(ffprobeStatic.path);
         const OPENAIAPIKEY = process.env.OPENAI_API_KEY;
-    
+
         const openai = new OpenAI({
             apiKey: OPENAIAPIKEY,
         });
-    
+
         const inputVoice = "nova";
         const inputModel = "tts-1";
-    
+
         const url = "https://api.openai.com/v1/audio/speech";
         const headers = {
             Authorization: `Bearer ${OPENAIAPIKEY}`,
             'Content-Type': 'application/json'
         };
-    
+
         const idUser = req.uid;
-    
+
         if (!idUser) {
             return res.status(401).json({
                 status: 'error',
                 message: 'Pengguna tidak terautentikasi.',
             });
         }
-    
+
         const messageText = req.body.messageText;
         const chatRoomId = req.params.chatRoomId;
         let chatHistory = [];
-    
+
         try {
             const messagesSnapshot = await db.collection('Message').where('chatRoomId', '==', chatRoomId).get();
-    
+
             messagesSnapshot.forEach((doc) => {
                 const messageData = doc.data();
                 chatHistory.push({
@@ -815,7 +815,7 @@ class ChatController {
                 message: 'Terjadi kesalahan dalam mengambil chat.',
             });
         }
-    
+
         const messages = [
             {
                 role: "system",
@@ -824,7 +824,7 @@ class ChatController {
             ...chatHistory,
             { role: "user", content: messageText },
         ];
-    
+
         try {
             const messageRef = await db.collection('Message').add({
                 idUser: idUser,
@@ -832,48 +832,48 @@ class ChatController {
                 createdAt: new Date().toISOString(),
                 chatRoomId: chatRoomId,
             });
-    
+
             const aiChatResponse = await openai.chat.completions.create({
                 messages: messages,
                 model: "gpt-3.5-turbo",
             });
             const aiChatResponseText = aiChatResponse.choices[0].message.content;
-    
+
             chatHistory.push({ role: "user", content: messageText }, { role: "assistant", content: aiChatResponseText });
-    
+
             await db.collection('AIMessage').add({
                 idMessage: messageRef.id,
                 AIMessageText: aiChatResponseText,
                 createdAt: new Date().toISOString(),
                 chatRoomId: chatRoomId,
             });
-    
+
             const data = {
                 model: inputModel,
                 input: aiChatResponseText,
                 voice: inputVoice,
                 response_format: "mp3",
             };
-    
+
             const audioResponse = await axios.post(url, data, {
                 headers: headers,
                 responseType: "stream",
             });
-    
+
             // Menentukan direktori dan nama file output
             const outputDir = path.join(__dirname, 'output');
             if (!fs.existsSync(outputDir)) {
                 fs.mkdirSync(outputDir);
             }
             const outputFile = path.join(outputDir, `audioResponse-${Date.now()}.mp3`);
-    
+
             // Menulis response audio ke file
             const writer = fs.createWriteStream(outputFile);
             audioResponse.data.pipe(writer);
-    
+
             // Menunggu penulisan file selesai
             writer.on('finish', () => {
-                res.sendFile(outputFile, function(err) {
+                res.sendFile(outputFile, function (err) {
                     if (err) {
                         console.error("Error sending file:", err);
                         res.status(500).send("Internal Server Error");
@@ -882,7 +882,7 @@ class ChatController {
                     }
                 });
             });
-    
+
         } catch (error) {
             console.error(error);
             return res.status(500).json({
@@ -890,11 +890,11 @@ class ChatController {
                 message: 'Terjadi kesalahan dalam menambahkan chat.',
             });
         }
-    
-    
-    
+
+
+
         // Return text response
-    
+
         // try {
         //     // Access the Message collection directly
         //     const messageRef = await db.collection('Message').add({
@@ -903,23 +903,23 @@ class ChatController {
         //         createdAt: new Date().toISOString(),
         //         chatRoomId: chatRoomId, // Include chatRoomId as a field
         //     });
-    
+
         //     const messageId = messageRef.id;
-    
+
         //     // Send messages to the chatbot and get the response
         //     const aiChatResponse = await openai.chat.completions.create({
         //         messages: messages,
         //         model: "gpt-3.5-turbo",
         //     });
         //     const aiChatResponseText = aiChatResponse.choices[0].message.content;
-    
+
         //     chatHistory.push(
         //         { role: "user", content: messageText },
         //         { role: "assistant", content: aiChatResponseText }
         //     );
-    
+
         //     console.log(`Assistant said: ${aiChatResponseText}`);
-    
+
         //     // Access the AIMessage collection directly
         //     await db.collection('AIMessage').add({
         //         idMessage: messageId,
@@ -927,7 +927,7 @@ class ChatController {
         //         createdAt: new Date().toISOString(),
         //         chatRoomId: chatRoomId,
         //     });
-    
+
         //     res.status(200).json({
         //         status: 'success',
         //         data: {
@@ -949,9 +949,9 @@ class ChatController {
         const openai = new OpenAI({
             apiKey: OPENAIAPIKEY,
         });
-    
+
         let chatHistory = [];
-    
+
         const idUser = req.uid;
         if (!idUser) {
             return res.status(401).json({
@@ -959,13 +959,13 @@ class ChatController {
                 message: 'Pengguna tidak terautentikasi.',
             });
         }
-    
+
         const messageText = req.body.messageText;
         const chatRoomId = req.params.chatRoomId;
-    
+
         try {
             const messagesSnapshot = await db.collection('Message').where('chatRoomId', '==', chatRoomId).get();
-    
+
             messagesSnapshot.forEach((doc) => {
                 const messageData = doc.data();
                 chatHistory.push({
@@ -980,7 +980,7 @@ class ChatController {
                 message: 'Terjadi kesalahan dalam mengambil chat.',
             });
         }
-    
+
         const messages = [
             {
                 role: "system",
@@ -989,15 +989,15 @@ class ChatController {
             ...chatHistory,
             { role: "user", content: messageText },
         ];
-    
+
         try {
             const message = new Message(idUser, messageText, chatRoomId);
             const messageRef = await db.collection('Message').add(message.getAllMessage());
             const messageId = messageRef.id;
-    
+
             let chatHistory = [];
             const messagesSnapshot = await db.collection('Message').where('chatRoomId', '==', chatRoomId).get();
-    
+
             messagesSnapshot.forEach((doc) => {
                 const messageData = doc.data();
                 chatHistory.push({
@@ -1005,13 +1005,13 @@ class ChatController {
                     content: messageData.messageText,
                 });
             });
-    
+
             const aiChatResponse = await openai.chat.completions.create({
                 messages: messages,
                 model: "gpt-3.5-turbo",
             });
             const aiChatResponseText = aiChatResponse.choices[0].message.content;
-    
+
             // Menyimpan respons ke dalam database
             const aimessage = new AIMessage(messageId, aiChatResponseText, chatRoomId);
             const AIMessageRef = await db.collection('AIMessage').add(aimessage.getAllAIMessage());
@@ -1037,9 +1037,9 @@ class ChatController {
         const openai = new OpenAI({
             apiKey: OPENAIAPIKEY,
         });
-    
+
         let chatHistory = [];
-    
+
         const idUser = req.uid;
         if (!idUser) {
             return res.status(401).json({
@@ -1047,13 +1047,13 @@ class ChatController {
                 message: 'Pengguna tidak terautentikasi.',
             });
         }
-    
+
         const messageText = req.body.messageText;
         const chatRoomId = req.params.chatRoomId;
-    
+
         try {
             const messagesSnapshot = await db.collection('Message').where('chatRoomId', '==', chatRoomId).get();
-    
+
             messagesSnapshot.forEach((doc) => {
                 const messageData = doc.data();
                 chatHistory.push({
@@ -1068,7 +1068,7 @@ class ChatController {
                 message: 'Terjadi kesalahan dalam mengambil chat.',
             });
         }
-    
+
         const messages = [
             {
                 role: "system",
@@ -1077,16 +1077,16 @@ class ChatController {
             ...chatHistory,
             { role: "user", content: messageText },
         ];
-    
+
         try {
             const message = new Message(idUser, messageText, chatRoomId);
             const messageRef = await db.collection('Message').add(message.getAllMessage());
-    
+
             const messageId = messageRef.id;
-    
+
             let chatHistory = [];
             const messagesSnapshot = await db.collection('Message').where('chatRoomId', '==', chatRoomId).get();
-    
+
             messagesSnapshot.forEach((doc) => {
                 const messageData = doc.data();
                 chatHistory.push({
@@ -1094,17 +1094,17 @@ class ChatController {
                     content: messageData.messageText,
                 });
             });
-    
+
             const aiChatResponse = await openai.chat.completions.create({
                 messages: messages,
                 model: "gpt-3.5-turbo",
             });
             const aiChatResponseText = aiChatResponse.choices[0].message.content;
-    
+
             // Menyimpan respons ke dalam database
             const aimessage = new AIMessage(messageId, aiChatResponseText, chatRoomId);
             const AIMessageRef = await db.collection('AIMessage').add(aimessage.getAllAIMessage());
-    
+
             // Mengirim respons teks kembali ke pengguna
             return res.json({
                 status: 'success',
@@ -1128,24 +1128,24 @@ class ChatController {
         const openai = new OpenAI({
             apiKey: OPENAIAPIKEY,
         });
-    
+
         let chatHistory = [];
-    
-        const idUser = req.uid ;
+
+        const idUser = req.uid;
         if (!idUser) {
             return res.status(401).json({
                 status: 'error',
                 message: 'Pengguna tidak terautentikasi.',
             });
         }
-    
+
         const idMessage = req.params.idMessage;
         const messageText = req.body.messageText;
         const chatRoomId = req.params.chatRoomId;
-    
+
         try {
             const messagesSnapshot = await db.collection('Message').where('chatRoomId', '==', chatRoomId).get();
-    
+
             messagesSnapshot.forEach((doc) => {
                 const messageData = doc.data();
                 chatHistory.push({
@@ -1153,10 +1153,10 @@ class ChatController {
                     content: messageData.messageText,
                 });
             });
-    
+
             // Menambahkan pesan yang diubah ke chatHistory
             chatHistory.push({ role: "user", content: messageText });
-    
+
             const messages = [
                 {
                     role: "system",
@@ -1164,36 +1164,36 @@ class ChatController {
                 },
                 ...chatHistory
             ];
-    
+
             const aiChatResponse = await openai.chat.completions.create({
                 messages: messages,
                 model: "gpt-3.5-turbo",
             });
             const aiChatResponseText = aiChatResponse.choices[0].message.content;
-    
+
             // Mengubah pesan asli
             const messageRef = await db.collection('Message').doc(idMessage).get();
-    
+
             if (!messageRef.exists) {
                 return res.status(404).json({
                     status: 'error',
                     message: 'Chat tidak ditemukan.',
                 });
             }
-    
+
             const messageData = messageRef.data();
-    
+
             if (messageData.idUser !== idUser || messageData.chatRoomId !== chatRoomId) {
                 return res.status(403).json({
                     status: 'error',
                     message: 'Anda tidak memiliki akses untuk mengubah chat ini.',
                 });
             }
-    
+
             await messageRef.ref.update({
                 messageText: messageText,
             });
-    
+
             // Mengubah respons AI yang terkait
             const AIMessageRef = await db.collection('AIMessage').where('idMessage', '==', idMessage).get();
             let AIMessageId = [];
@@ -1203,7 +1203,7 @@ class ChatController {
                 });
                 AIMessageId.push(doc.id);
             });
-    
+
             res.status(200).json({
                 status: 'success',
                 userMessage: messageText,
@@ -1211,7 +1211,7 @@ class ChatController {
                 idMessage: messageRef.id,
                 AIMessageId: AIMessageId[0],
             });
-    
+
         } catch (error) {
             console.error(error);
             res.status(500).json({
@@ -1226,9 +1226,9 @@ class ChatController {
         const openai = new OpenAI({
             apiKey: OPENAIAPIKEY,
         });
-    
+
         let chatHistory = [];
-    
+
         const idUser = req.uid;
         if (!idUser) {
             return res.status(401).json({
@@ -1236,14 +1236,14 @@ class ChatController {
                 message: 'Pengguna tidak terautentikasi.',
             });
         }
-    
+
         const idMessage = req.params.idMessage;
         const messageText = req.body.messageText;
         const chatRoomId = req.params.chatRoomId;
-    
+
         try {
             const messagesSnapshot = await db.collection('Message').where('chatRoomId', '==', chatRoomId).get();
-    
+
             messagesSnapshot.forEach((doc) => {
                 const messageData = doc.data();
                 chatHistory.push({
@@ -1251,10 +1251,10 @@ class ChatController {
                     content: messageData.messageText,
                 });
             });
-    
+
             // Menambahkan pesan yang diubah ke chatHistory
             chatHistory.push({ role: "user", content: messageText });
-    
+
             const messages = [
                 {
                     role: "system",
@@ -1262,45 +1262,45 @@ class ChatController {
                 },
                 ...chatHistory
             ];
-    
+
             const aiChatResponse = await openai.chat.completions.create({
                 messages: messages,
                 model: "gpt-3.5-turbo",
             });
             const aiChatResponseText = aiChatResponse.choices[0].message.content;
-    
+
             // Mengubah pesan asli
             const messageRef = await db.collection('Message').doc(idMessage).get();
-    
+
             if (!messageRef.exists) {
                 return res.status(404).json({
                     status: 'error',
                     message: 'Chat tidak ditemukan.',
                 });
             }
-    
+
             const messageData = messageRef.data();
-    
+
             if (messageData.idUser !== idUser || messageData.chatRoomId !== chatRoomId) {
                 return res.status(403).json({
                     status: 'error',
                     message: 'Anda tidak memiliki akses untuk mengubah chat ini.',
                 });
             }
-    
+
             await messageRef.ref.update({
                 messageText: messageText,
             });
-    
+
             // Mengubah respons AI yang terkait
             const AIMessageRef = await db.collection('AIMessage').where('idMessage', '==', idMessage).get();
-    
+
             AIMessageRef.forEach((doc) => {
                 doc.ref.update({
                     AIMessageText: aiChatResponseText,
                 });
             });
-    
+
             // Mengirim response audio ke pengguna
             const data = {
                 model: "tts-1",
@@ -1308,35 +1308,35 @@ class ChatController {
                 voice: "nova",
                 response_format: "mp3",
             };
-    
+
             const url = "https://api.openai.com/v1/audio/speech";
             const headers = {
                 Authorization: `Bearer ${OPENAIAPIKEY}`,
                 'Content-Type': 'application/json'
             };
-    
+
             const audioResponse = await axios.post(url, data, {
                 headers: headers,
                 responseType: "stream",
             });
-    
+
             // Menentukan direktori dan nama file output
             const outputDir = path.join(__dirname, 'output');
             if (!fs.existsSync(outputDir)) {
                 fs.mkdirSync(outputDir);
             }
             const outputFile = path.join(outputDir, `audioResponse-${Date.now()}.mp3`);
-    
+
             // Menulis response audio ke file baru
             const writer = fs.createWriteStream(outputFile);
             audioResponse.data.pipe(writer);
-    
+
             // Menunggu penulisan file selesai
             writer.on('finish', () => {
                 const oldFile = path.join(outputDir, 'audioResponse.mp3');
                 fs.renameSync(outputFile, oldFile);
-    
-                res.sendFile(oldFile, function(err) {
+
+                res.sendFile(oldFile, function (err) {
                     if (err) {
                         console.error("Error sending file:", err);
                         res.status(500).send("Internal Server Error");
@@ -1345,7 +1345,7 @@ class ChatController {
                     }
                 });
             });
-    
+
         } catch (error) {
             console.error(error);
             res.status(500).json({
@@ -1364,39 +1364,39 @@ class ChatController {
                 message: 'Pengguna tidak terautentikasi.',
             });
         }
-    
+
         const idMessage = req.params.idMessage;
         const chatRoomId = req.params.chatRoomId;
-    
+
         try {
             // Access the Message collection directly
             const messageRef = await db.collection('Message').doc(idMessage).get();
-    
+
             if (!messageRef.exists) {
                 return res.status(404).json({
                     status: 'error',
                     message: 'Chat tidak ditemukan.',
                 });
             }
-    
+
             const messageData = messageRef.data();
-    
+
             if (messageData.idUser !== idUser || messageData.chatRoomId !== chatRoomId) {
                 return res.status(403).json({
                     status: 'error',
                     message: 'Anda tidak memiliki akses untuk menghapus chat ini.',
                 });
             }
-    
+
             await messageRef.ref.delete();
-    
+
             // Access the AIMessage collection directly
             const AIMessageRef = await db.collection('AIMessage').where('idMessage', '==', idMessage).get();
-    
+
             AIMessageRef.forEach((doc) => {
                 doc.ref.delete();
             });
-    
+
             res.status(200).json({
                 status: 'success',
                 data: {
@@ -1414,20 +1414,20 @@ class ChatController {
 
     static async createChatRoomVoice(req, res) {
         const idUser = req.uid;
-    
+
         if (!idUser) {
             return res.status(401).json({
                 status: 'error',
                 message: 'Pengguna tidak terautentikasi.',
             });
         }
-    
+
         try {
             let chatRoomExists = true;
             let counter = 1;
             let chatRoomName = `chatroom-voice-${counter}`;
             let type = 'voice';
-    
+
             // Loop until a unique chat room name is found
             while (chatRoomExists) {
                 const existingChatRoom = await db.collection('ChatRooms')
@@ -1435,7 +1435,7 @@ class ChatController {
                     .where('type', '==', type)
                     .where('chatRoomName', '==', chatRoomName)
                     .get();
-    
+
                 if (existingChatRoom.empty) {
                     chatRoomExists = false;
                 } else {
@@ -1443,10 +1443,10 @@ class ChatController {
                     chatRoomName = `chatroom-voice-${counter}`;
                 }
             }
-    
+
             const chatRoom = new ChatRoom(idUser, chatRoomName, type);
             const chatRoomRef = await db.collection('ChatRooms').add(chatRoom.addChatRoom());
-    
+
             return res.status(200).json({
                 status: 'success',
                 data: {
@@ -1467,20 +1467,20 @@ class ChatController {
 
     static async createChatRoomText(req, res) {
         const idUser = req.uid;
-    
+
         if (!idUser) {
             return res.status(401).json({
                 status: 'error',
                 message: 'Pengguna tidak terautentikasi.',
             });
         }
-    
+
         try {
             let chatRoomExists = true;
             let counter = 1;
             let chatRoomName = `chatroom-text-${counter}`;
             const type = 'Text';
-    
+
             // Loop until a unique chat room name is found
             while (chatRoomExists) {
                 const existingChatRoom = await db.collection('ChatRooms')
@@ -1488,7 +1488,7 @@ class ChatController {
                     .where('type', '==', type)
                     .where('chatRoomName', '==', chatRoomName)
                     .get();
-    
+
                 if (existingChatRoom.empty) {
                     chatRoomExists = false;
                 } else {
@@ -1496,10 +1496,10 @@ class ChatController {
                     chatRoomName = `chatroom-text-${counter}`;
                 }
             }
-    
+
             const chatRoom = new ChatRoom(idUser, chatRoomName, type);
             const chatRoomRef = await db.collection('ChatRooms').add(chatRoom.addChatRoom());
-    
+
             return res.status(200).json({
                 status: 'success',
                 data: {
@@ -1517,28 +1517,28 @@ class ChatController {
             });
         }
     }
-    
+
 
     static async getUserChatRoomVoice(req, res) {
         const idUser = req.uid;
-    
+
         if (!idUser) {
             return res.status(401).json({
                 status: 'error',
                 message: 'User not authenticated.',
             });
         }
-    
+
         try {
             const chatRoomsSnapshot = await db.collection('ChatRooms')
                 .where('idUser', '==', idUser)
                 .where('type', '==', 'voice')
                 .get();
-            
+
             const chatRooms = [];
             for (const doc of chatRoomsSnapshot.docs) {
                 const chatRoom = { id: doc.id, ...doc.data() };
-    
+
                 // Get the last AIMEssageText message for this chat room
                 const lastMessageSnapshot = await db.collection('AIMessage')
                     .where('chatRoomId', '==', doc.id)
@@ -1551,10 +1551,10 @@ class ChatController {
                 } else {
                     chatRoom.lastAIMEssageText = "empty chat room";
                 }
-    
+
                 chatRooms.push(chatRoom);
             }
-    
+
             return res.status(200).json({
                 status: 'success',
                 data: chatRooms,
@@ -1570,24 +1570,24 @@ class ChatController {
 
     static async getUserChatRoomText(req, res) {
         const idUser = req.uid;
-    
+
         if (!idUser) {
             return res.status(401).json({
                 status: 'error',
                 message: 'User not authenticated.',
             });
         }
-    
+
         try {
             const chatRoomsSnapshot = await db.collection('ChatRooms')
                 .where('idUser', '==', idUser)
                 .where('type', '==', 'Text')
                 .get();
-            
+
             const chatRooms = [];
             for (const doc of chatRoomsSnapshot.docs) {
                 const chatRoom = { id: doc.id, ...doc.data() };
-    
+
                 // Get the last AIMEssageText message for this chat room
                 const lastMessageSnapshot = await db.collection('AIMessage')
                     .where('chatRoomId', '==', doc.id)
@@ -1600,10 +1600,10 @@ class ChatController {
                 } else {
                     chatRoom.lastAIMEssageText = "empty chat room";
                 }
-    
+
                 chatRooms.push(chatRoom);
             }
-    
+
             return res.status(200).json({
                 status: 'success',
                 data: chatRooms,
@@ -1620,45 +1620,45 @@ class ChatController {
     static async deleteChatRoom(req, res) {
         const idUser = req.uid;
         const chatRoomId = req.params.chatRoomId;
-    
+
         if (!idUser) {
             return res.status(401).json({
                 status: 'error',
                 message: 'User not authenticated.',
             });
         }
-    
+
         try {
             const chatRoomRef = db.collection('ChatRooms').doc(chatRoomId);
             const chatRoomDoc = await chatRoomRef.get();
-    
+
             if (!chatRoomDoc.exists || chatRoomDoc.data().idUser !== idUser) {
                 return res.status(404).json({
                     status: 'error',
                     message: 'Chat room not found or user does not have permission.',
                 });
             }
-    
+
             // Delete chat room and its messages
             const messagesQuery = db.collection('Message').where('chatRoomId', '==', chatRoomId);
             const messagesSnapshot = await messagesQuery.get();
-    
+
             const batch = db.batch();
             messagesSnapshot.docs.forEach((doc) => {
                 batch.delete(doc.ref);
             });
-    
+
             // Also delete AIMessages associated with the chat room
             const AIMessagesQuery = db.collection('AIMessage').where('chatRoomId', '==', chatRoomId);
             const AIMessagesSnapshot = await AIMessagesQuery.get();
-    
+
             AIMessagesSnapshot.docs.forEach((doc) => {
                 batch.delete(doc.ref);
             });
-    
+
             await batch.commit();
             await chatRoomRef.delete();
-    
+
             return res.status(200).json({
                 status: 'success',
                 message: 'Chat room and all related messages and AIMessages have been deleted successfully.',
@@ -1676,29 +1676,29 @@ class ChatController {
         const idUser = req.uid;
         const chatRoomId = req.params.chatRoomId;
         const chatRoomName = req.body.chatRoomName;
-    
+
         if (!idUser) {
             return res.status(401).json({
                 status: 'error',
                 message: 'User not authenticated.',
             });
         }
-    
+
         try {
             const chatRoomRef = db.collection('ChatRooms').doc(chatRoomId);
             const chatRoomDoc = await chatRoomRef.get();
-    
+
             if (!chatRoomDoc.exists || chatRoomDoc.data().idUser !== idUser) {
                 return res.status(404).json({
                     status: 'error',
                     message: 'Chat room not found or user does not have permission.',
                 });
             }
-    
+
             await chatRoomRef.update({
                 chatRoomName: chatRoomName,
             });
-    
+
             return res.status(200).json({
                 status: 'success',
                 chatRoomId: chatRoomId,
@@ -1721,18 +1721,18 @@ class ChatController {
     static async getChatRoomData(req, res) {
         const idUser = req.uid;
         const chatRoomId = req.params.chatRoomId;
-    
+
         if (!idUser) {
             return res.status(401).json({
                 status: 'error',
                 message: 'User not authenticated.',
             });
         }
-    
+
         try {
             const chatRoomRef = db.collection('ChatRooms').doc(chatRoomId);
             const chatRoomDoc = await chatRoomRef.get();
-    
+
             if (!chatRoomDoc.exists || chatRoomDoc.data().idUser !== idUser) {
                 return res.status(404).json({
                     status: 'error',
@@ -1748,6 +1748,7 @@ class ChatController {
                 messages.push({
                     id: doc.id,
                     ...doc.data(),
+                    isUserMessage: true,
                 });
             });
 
@@ -1759,16 +1760,18 @@ class ChatController {
                 AIMessages.push({
                     id: doc.id,
                     ...doc.data(),
+                    isUserMessage: false,
                 });
             });
 
-            const chatData = [];
-            for (let i = 0; i < messages.length; i++) {
-                chatData.push({
-                    message: messages[i],
-                    AIMessage: AIMessages[i],
-                });
-            }
+            // Combine and restructure messages and AI messages
+            const chatData = [...messages, ...AIMessages].sort((a, b) => a.createdAt.localeCompare(b.createdAt)).map(item => ({
+                idMessage: item.isUserMessage ? item.id : "",
+                idAIMessage: item.isUserMessage ? "" : item.id, 
+                message: item.messageText || item.AIMessageText,
+                isUserMessage: item.isUserMessage,
+                isPlaceholder: false, // Assuming no placeholders for now
+            }));
 
             return res.status(200).json({
                 status: 'success',
