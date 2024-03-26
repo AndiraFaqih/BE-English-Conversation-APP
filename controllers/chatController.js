@@ -1196,21 +1196,20 @@ class ChatController {
     
             // Mengubah respons AI yang terkait
             const AIMessageRef = await db.collection('AIMessage').where('idMessage', '==', idMessage).get();
-    
+            let AIMessageId = [];
             AIMessageRef.forEach((doc) => {
                 doc.ref.update({
                     AIMessageText: aiChatResponseText,
                 });
+                AIMessageId.push(doc.id);
             });
     
             res.status(200).json({
                 status: 'success',
                 userMessage: messageText,
                 message: aiChatResponseText,
-                // data: {
-                //     messageText: messageText,
-                //     AIMessageText: aiChatResponseText,
-                // },
+                idMessage: messageRef.id,
+                AIMessageId: AIMessageId,
             });
     
         } catch (error) {
