@@ -1111,7 +1111,7 @@ class ChatController {
                 userMessage: messageText,
                 message: aiChatResponseText,
                 idMessage: messageId,
-                AIMessageId: AIMessageRef.id,
+                idAIMessage: AIMessageRef.id,
 
             });
         } catch (error) {
@@ -1209,7 +1209,7 @@ class ChatController {
                 userMessage: messageText,
                 message: aiChatResponseText,
                 idMessage: messageRef.id,
-                AIMessageId: AIMessageId[0],
+                idAIMessage: AIMessageId[0],
             });
 
         } catch (error) {
