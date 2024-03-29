@@ -1765,13 +1765,23 @@ class ChatController {
             });
 
             // Combine and restructure messages and AI messages
-            const chatData = [...messages, ...AIMessages].sort((a, b) => a.createdAt.localeCompare(b.createdAt)).map(item => ({
-                idMessage: item.isUserMessage ? item.id : item.id,
-                idAIMessage: item.isUserMessage ? "" : item.id, 
-                message: item.messageText || item.AIMessageText,
-                isUserMessage: item.isUserMessage,
-                isPlaceholder: false, // Assuming no placeholders for now
-            }));
+
+            const chatData = [];
+            let lastUserMessageId = "";
+
+            [...messages, ...AIMessages].sort((a, b) => a.createdAt.localeCompare(b.createdAt)).forEach(item => {
+                if (item.isUserMessage) {
+                    lastUserMessageId = item.id;
+                }
+
+                chatData.push({
+                    idMessage: item.isUserMessage ? item.id : lastUserMessageId,
+                    idAIMessage: item.isUserMessage ? "" : item.id,
+                    message: item.messageText || item.AIMessageText,
+                    isUserMessage: item.isUserMessage,
+                    isPlaceholder: false, // Assuming no placeholders for now
+                });
+            });
 
             return res.status(200).json({
                 status: 'success',
