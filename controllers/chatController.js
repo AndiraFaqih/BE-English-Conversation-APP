@@ -1766,7 +1766,7 @@ class ChatController {
 
             // Combine and restructure messages and AI messages
             const chatData = [...messages, ...AIMessages].sort((a, b) => a.createdAt.localeCompare(b.createdAt)).map(item => ({
-                idMessage: item.id,
+                idMessage: item.isUserMessage ? item.id : item.id,
                 idAIMessage: item.isUserMessage ? "" : item.id, 
                 message: item.messageText || item.AIMessageText,
                 isUserMessage: item.isUserMessage,
